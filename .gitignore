@@ -1,7 +1,12 @@
 *.class
 
-# Maven locations #
+# Build Locations #
 target
+build
+
+# Eclipse Files #
+.classpath
+.project
 
 # Package Files #
 *.jar
