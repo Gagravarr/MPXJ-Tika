@@ -20,7 +20,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.mpxj.MPXJException;
+import net.sf.mpxj.ProjectFile;
+import net.sf.mpxj.mpp.MPPReader;
+
+import org.apache.poi.poifs.filesystem.NPOIFSFileSystem;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AbstractParser;
@@ -42,6 +49,29 @@ public class MPPParser extends AbstractParser {
     public void parse(InputStream stream, ContentHandler handler,
             Metadata metadata, ParseContext context)
             throws IOException, TikaException, SAXException {
-        // TODO Implement
+        MPPReader reader = new MPPReader();
+        ProjectFile project = null;
+
+        // Open the MPP resource, re-using containers or files if available
+        TikaInputStream tstream = TikaInputStream.cast(stream);
+        try {
+            if (tstream != null) {
+                Object container = tstream.getOpenContainer();
+                if (container != null && container instanceof POIFSFileSystem) {
+                    project = reader.read((POIFSFileSystem)container);
+                } else if (container != null && container instanceof NPOIFSFileSystem) {
+                        project = reader.read((NPOIFSFileSystem)container);
+                } else if (tstream.hasFile()) {
+                    project = reader.read(tstream.getFile());
+                }
+            }
+            if (project == null) {
+                project = reader.read(stream);
+            }
+        } catch(MPXJException e) {
+            throw new TikaException("Error reading MPP file", e);
+        }
+
+        // TODO Extract helpful information out
     }
 }
