@@ -22,12 +22,9 @@ import java.util.Set;
 
 import net.sf.mpxj.MPXJException;
 import net.sf.mpxj.ProjectFile;
-import net.sf.mpxj.mpp.MPPReader;
+import net.sf.mpxj.mpx.MPXReader;
 
-import org.apache.poi.poifs.filesystem.NPOIFSFileSystem;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.tika.exception.TikaException;
-import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AbstractParser;
@@ -36,13 +33,13 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
 /**
- * Tika Parser for Microsoft Project MPP files (OLE2 based)
+ * Tika Parser for Microsoft Project MPX files (Text based)
  */
-public class MPPParser extends AbstractParser {
-    private static final long serialVersionUID = 5830815858263640677L;
-    
+public class MPXParser extends AbstractParser {
+    private static final long serialVersionUID = -4791025107910605527L;
+
     private static List<MediaType> TYPES = Arrays.asList(new MediaType[] {
-            MediaType.application("vnd.ms-project")
+            MediaType.application("x-project")
     });
 
     public Set<MediaType> getSupportedTypes(ParseContext context) {
@@ -52,27 +49,13 @@ public class MPPParser extends AbstractParser {
     public void parse(InputStream stream, ContentHandler handler,
             Metadata metadata, ParseContext context)
             throws IOException, TikaException, SAXException {
-        MPPReader reader = new MPPReader();
+        MPXReader reader = new MPXReader();
         ProjectFile project = null;
 
-        // Open the MPP resource, re-using containers or files if available
-        TikaInputStream tstream = TikaInputStream.cast(stream);
         try {
-            if (tstream != null) {
-                Object container = tstream.getOpenContainer();
-                if (container != null && container instanceof POIFSFileSystem) {
-                    project = reader.read((POIFSFileSystem)container);
-                } else if (container != null && container instanceof NPOIFSFileSystem) {
-                        project = reader.read((NPOIFSFileSystem)container);
-                } else if (tstream.hasFile()) {
-                    project = reader.read(tstream.getFile());
-                }
-            }
-            if (project == null) {
-                project = reader.read(stream);
-            }
+            project = reader.read(stream);
         } catch(MPXJException e) {
-            throw new TikaException("Error reading MPP file", e);
+            throw new TikaException("Error reading MPX file", e);
         }
 
         // Extract helpful information out
