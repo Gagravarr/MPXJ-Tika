@@ -1,5 +1,8 @@
 *.class
 
+# Maven locations #
+target
+
 # Package Files #
 *.jar
 *.war

@@ -1,0 +1,8 @@
+Apache Tika plugin for MPXJ
+Copyright 2013 Nick Burch
+
+MPXJ is developed under the LGPL at
+http://mpxj.sourceforge.net/
+
+Apache Tika is developed at
+The Apache Software Foundation (http://www.apache.org/).
