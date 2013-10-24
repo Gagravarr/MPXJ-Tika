@@ -24,6 +24,7 @@ import net.sf.mpxj.MPXJException;
 import net.sf.mpxj.ProjectFile;
 import net.sf.mpxj.mpp.MPPReader;
 
+import org.apache.poi.poifs.filesystem.DirectoryNode;
 import org.apache.poi.poifs.filesystem.NPOIFSFileSystem;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.tika.exception.TikaException;
@@ -32,6 +33,7 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AbstractParser;
 import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.microsoft.SummaryExtractor;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
@@ -52,28 +54,38 @@ public class MPPParser extends AbstractParser {
     public void parse(InputStream stream, ContentHandler handler,
             Metadata metadata, ParseContext context)
             throws IOException, TikaException, SAXException {
-        MPPReader reader = new MPPReader();
-        ProjectFile project = null;
-
-        // Open the MPP resource, re-using containers or files if available
+        // Open the OLE2 Container, re-using containers or files if available
         TikaInputStream tstream = TikaInputStream.cast(stream);
+        DirectoryNode root = null;
         try {
             if (tstream != null) {
                 Object container = tstream.getOpenContainer();
                 if (container != null && container instanceof POIFSFileSystem) {
-                    project = reader.read((POIFSFileSystem)container);
+                    root = ((POIFSFileSystem)container).getRoot();
                 } else if (container != null && container instanceof NPOIFSFileSystem) {
-                        project = reader.read((NPOIFSFileSystem)container);
+                    root = ((NPOIFSFileSystem)container).getRoot();
                 } else if (tstream.hasFile()) {
-                    project = reader.read(tstream.getFile());
+                    root = new NPOIFSFileSystem(tstream.getFile()).getRoot();
                 }
             }
-            if (project == null) {
-                project = reader.read(stream);
+            if (root == null) {
+                root = new NPOIFSFileSystem(stream).getRoot();
             }
+        } catch(IOException e) {
+            throw new TikaException("Error reading MPP file", e);
+        }
+        
+        // Open the MPP Resource
+        MPPReader reader = new MPPReader();
+        ProjectFile project = null;
+        try {
+            project = reader.read(root);
         } catch(MPXJException e) {
             throw new TikaException("Error reading MPP file", e);
         }
+        
+        // Handle the Metadata in the OLE2 Container
+        new SummaryExtractor(metadata).parseSummaries(root);
 
         // Extract helpful information out
         ProjectFileProcessor.parse(project, handler, metadata, context);
