@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.mpxj.Duration;
 import net.sf.mpxj.ProjectFile;
 import net.sf.mpxj.Resource;
 import net.sf.mpxj.ResourceAssignment;
@@ -51,24 +52,29 @@ public class ProjectFileProcessor {
        xhtml.element("h2", "Tasks");
        handleTasks(project.getChildTasks(), xhtml, usedResources);
 
-       // Print out any spare resources at the end
-       xhtml.element("h2", "Un-Used Resources");
-       xhtml.startElement("ul");
-       boolean hasUnUsed = false;
+       // Find any un-used resources
+       Set<Resource> spareResources = new HashSet<Resource>();
        for (Resource resource : project.getAllResources()) {
            if (! usedResources.contains(resource.getID())) {
-               hasUnUsed = true;
+               if (resource.getID() == 0 && resource.getName() == null) {
+                   // Special case, skip this
+               } else {
+                   spareResources.add(resource);
+               }
+           }
+       }
+
+       // Print out any spare resources at the end
+       if (! spareResources.isEmpty()) {
+           xhtml.element("h2", "Un-Used Resources");
+           xhtml.startElement("ul");
+           for (Resource resource : spareResources) {
                String name = buildName("Resource", resource.getName(), resource.getID());
                xhtml.element("li", name);
            }
+           xhtml.endElement("ul");
        }
-       if (! hasUnUsed) {
-           xhtml.startElement("li");
-           xhtml.element("i", "None");
-           xhtml.endElement("li");
-       }
-       xhtml.endElement("ul");
-       
+
        // Mark this as completed
        xhtml.endDocument();
     }
@@ -88,14 +94,13 @@ public class ProjectFileProcessor {
             xhtml.endElement("div");
 
             // Dates
-            xhtml.startElement("div", "class", "fromTo");
-            xhtml.characters("From ");
-            xhtml.characters(buildDate(task.getStart()));
-            xhtml.characters(" to ");
-            xhtml.characters(buildDate(task.getFinish()));
-            xhtml.endElement("div");
+            handleDates("Planned", task.getStart(), task.getFinish(), task.getDuration(), xhtml);
+            handleDates("Actual", task.getActualStart(), task.getActualFinish(), task.getActualDuration(), xhtml);
+            handleDates("Baseline", task.getBaselineStart(), task.getBaselineFinish(), task.getBaselineDuration(), xhtml);
+            handleDates("Earliest", task.getEarlyStart(), task.getEarlyFinish(), null, xhtml);
+            handleDates("Latest", task.getLateStart(), task.getLateFinish(), null, xhtml);
 
-            // TODO Further information and further dates
+            // TODO Further information
 
             // Resources
             for (ResourceAssignment ra : task.getResourceAssignments()) {
@@ -123,6 +128,32 @@ public class ProjectFileProcessor {
         xhtml.endElement("ol");
     }
     
+    /**
+     * Render a date range
+     */
+    protected static void handleDates(String what, Date start, Date finish,
+            Duration duration, XHTMLContentHandler xhtml) throws SAXException {
+        if (start == null && finish == null) {
+            // Assume there's nothing there, and skip
+            return;
+        }
+
+        String cls = what.toLowerCase() + "Dates";
+
+        xhtml.startElement("div", "class", "fromTo " + cls);
+        xhtml.characters(what);
+        xhtml.characters(" from ");
+        xhtml.characters(buildDate(start));
+        xhtml.characters(" to ");
+        xhtml.characters(buildDate(finish));
+
+        if (duration != null) {
+            // TODO Duration
+        }
+
+        xhtml.endElement("div");
+    }
+
     protected static String buildName(String what, String name, Integer id) {
         if (name != null) {
             return name;
