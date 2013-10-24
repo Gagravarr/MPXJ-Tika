@@ -24,6 +24,7 @@ import net.sf.mpxj.ProjectFile;
 import net.sf.mpxj.Resource;
 import net.sf.mpxj.ResourceAssignment;
 import net.sf.mpxj.Task;
+import net.sf.mpxj.TimeUnit;
 
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
@@ -164,7 +165,8 @@ public class ProjectFileProcessor {
         xhtml.characters(buildDate(finish));
 
         if (duration != null) {
-            // TODO Duration
+            xhtml.characters(" taking ");
+            xhtml.characters(buildDuration(duration));
         }
 
         xhtml.endElement("div");
@@ -183,5 +185,32 @@ public class ProjectFileProcessor {
             return "(unknown)";
         }
         return formatDate(when);
+    }
+    protected static String buildDuration(Duration duration) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(duration.getDuration());
+        sb.append(' ');
+
+        switch(duration.getUnits()) {
+          case MINUTES:
+            sb.append("Minute");
+            break;
+          case HOURS:
+              sb.append("Hour");
+              break;
+          case DAYS:
+              sb.append("Day");
+              break;
+          case WEEKS:
+              sb.append("Week");
+              break;
+          default:
+              sb.append(duration.getUnits().getName());
+        }
+        if (duration.getDuration() != 1.0) {
+            sb.append('s');
+        }
+
+        return sb.toString();
     }
 }
