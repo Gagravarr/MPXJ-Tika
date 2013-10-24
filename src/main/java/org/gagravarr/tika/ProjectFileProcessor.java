@@ -188,7 +188,14 @@ public class ProjectFileProcessor {
     }
     protected static String buildDuration(Duration duration) {
         StringBuffer sb = new StringBuffer();
-        sb.append(duration.getDuration());
+
+        int dInt = (int)duration.getDuration();
+        if (duration.getDuration() == (double)dInt) {
+            sb.append(dInt);
+        } else {
+            sb.append(duration.getDuration());
+        }
+
         sb.append(' ');
 
         switch(duration.getUnits()) {
