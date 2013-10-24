@@ -13,31 +13,27 @@
  */
 package org.gagravarr.tika;
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.InputStream;
 import java.util.Set;
 
-import net.sf.mpxj.ProjectFile;
-import net.sf.mpxj.mpp.MPPReader;
-import net.sf.mpxj.mpx.MPXWriter;
-import net.sf.mpxj.reader.ProjectReader;
-import net.sf.mpxj.writer.ProjectWriter;
-
 import org.apache.tika.config.TikaConfig;
+import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaMetadataKeys;
 import org.apache.tika.mime.MediaType;
+import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.junit.Test;
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.xml.sax.ContentHandler;
-
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 @RunWith(JUnit4.class)
 public class TestProjectParsers {
@@ -45,17 +41,10 @@ public class TestProjectParsers {
     public static MediaType MPX_TYPE = MediaType.application("x-project");
     
     @Test
-    @Ignore
-    public void DummyTest() {
-        assertEquals(true, true);
-        fail("Need to implement this");
-    }
-    
-    @Test
     public void BasicProcessing() throws Exception {
-        InputStream mpx = getTestFile("testPROJECT.mpx");
-        InputStream mpp2003 = getTestFile("testPROJECT2003.mpp");
-        InputStream mpp2007 = getTestFile("testPROJECT2007.mpp");
+        InputStream mpx = getTestFile("testPROJECT.mpx", null);
+        InputStream mpp2003 = getTestFile("testPROJECT2003.mpp", null);
+        InputStream mpp2007 = getTestFile("testPROJECT2007.mpp", null);
         
         MPPParser mppParser = new MPPParser();
         MPXParser mpxParser = new MPXParser();
@@ -86,37 +75,63 @@ public class TestProjectParsers {
         assertTrue("Not found in " + types, types.contains(MPX_TYPE));
         assertFalse("Shouldn't be in " + types, types.contains(MPP_TYPE));
         
-        // Check that the Auto Detect parser claims to support them both
-        Parser autoDetectParser = TikaConfig.getDefaultConfig().getParser();
-        types = autoDetectParser.getSupportedTypes(new ParseContext());
+        // Check that the Default Parser claims to support them both
+        Parser baseParser = TikaConfig.getDefaultConfig().getParser();
+        types = baseParser.getSupportedTypes(new ParseContext());
         assertTrue("Not found in " + types, types.contains(MPP_TYPE));
         assertTrue("Not found in " + types, types.contains(MPX_TYPE));
+        Parser autoDetectParser = new AutoDetectParser(baseParser);
 
         
         // Check the parsing works
-        Metadata metadata = new Metadata();
+        Metadata metadata;
         ContentHandler handler = new BodyContentHandler(); 
         
         
         // Ask for a MPP to be processed
-        InputStream mpp2003 = getTestFile("testPROJECT2003.mpp");
+        metadata = new Metadata();
+        InputStream mpp2003 = getTestFile("testPROJECT2003.mpp", metadata);
         autoDetectParser.parse(mpp2003, handler, metadata, new ParseContext());
 
         // Check it worked
-        // TODO
+        assertEquals(
+                "The quick brown fox jumps over the lazy dog", 
+                metadata.get(DublinCore.TITLE)
+        );
+        assertTrue(handler.toString().contains("Fox does his jump"));
+        assertTrue(handler.toString().contains("Obtain Dog"));
+        assertTrue(handler.toString().contains("from 2011-11-25T08:00:00"));
+        assertTrue(handler.toString().contains("to 2011-11-24T17:00:00"));
+        assertTrue(handler.toString().contains("taking 1 Day"));
         
         
         // Ask for a MPX to be processed
-        InputStream mpx = getTestFile("testPROJECT.mpx");
+        metadata = new Metadata();
+        handler = new BodyContentHandler();
+        InputStream mpx = getTestFile("testPROJECT.mpx", metadata);
         autoDetectParser.parse(mpx, handler, metadata, new ParseContext());
 
-        // Check it worked
-        // TODO
+        // Check it worked (Note - no metadata for MPX)
+        assertTrue(handler.toString().contains("Fox does his jump"));
+        assertTrue(handler.toString().contains("Obtain Dog"));
+//        assertContains("from 2011-11-25T08:00:00", handler.toString());
+//        assertContains("to 2011-11-24T17:00:00", handler.toString());
+        assertContains("from 2011-11-25T", handler.toString());
+        assertContains("to 2011-11-24T", handler.toString());
+        assertContains("taking 1 Day", handler.toString());
     }
     
-    protected static InputStream getTestFile(String name) throws Exception {
+    protected static InputStream getTestFile(String name, Metadata metadata) throws Exception {
         InputStream s = TestProjectParsers.class.getResourceAsStream("/test-files/" + name);
         assertNotNull("Test file not found: " + name, s);
+
+        if (metadata != null) {
+            metadata.add(TikaMetadataKeys.RESOURCE_NAME_KEY, name);
+        }
         return s;
+    }
+
+    protected static void assertContains(String needle, String haystack) {
+        assertTrue("'" + needle + "' not found in:\n" + haystack, haystack.contains(needle));
     }
 }
