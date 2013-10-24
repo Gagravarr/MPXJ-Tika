@@ -53,6 +53,7 @@ public class ProjectFileProcessor {
        handleTasks(project.getChildTasks(), xhtml, usedResources);
 
        // Find any un-used resources
+       // TODO Should we display all resources here instead, with notes etc?
        Set<Resource> spareResources = new HashSet<Resource>();
        for (Resource resource : project.getAllResources()) {
            if (! usedResources.contains(resource.getID())) {
@@ -93,6 +94,13 @@ public class ProjectFileProcessor {
             xhtml.element("b", name);
             xhtml.endElement("div");
 
+            // Notes
+            if (task.getNotes() != null) {
+                xhtml.startElement("div", "class", "notes");
+                xhtml.characters(task.getNotes());
+                xhtml.endElement("div");
+            }
+
             // Dates
             handleDates("Planned", task.getStart(), task.getFinish(), task.getDuration(), xhtml);
             handleDates("Actual", task.getActualStart(), task.getActualFinish(), task.getActualDuration(), xhtml);
@@ -110,6 +118,14 @@ public class ProjectFileProcessor {
 
                     xhtml.startElement("div", "class", "resource");
                     xhtml.element("i", buildName("Resource", resource.getName(), resource.getID()));
+
+                    // TODO What about Notes on the resource itself?
+                    if (ra.getNotes() != null) {
+                        xhtml.startElement("div", "class", "notes");
+                        xhtml.characters(ra.getNotes());
+                        xhtml.endElement("div");
+                    }
+
                     xhtml.endElement("div");
                 }
             }
@@ -153,6 +169,8 @@ public class ProjectFileProcessor {
 
         xhtml.endElement("div");
     }
+
+    // TODO Handler for Hyperlinks on things
 
     protected static String buildName(String what, String name, Integer id) {
         if (name != null) {
