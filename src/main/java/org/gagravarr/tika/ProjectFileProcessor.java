@@ -14,6 +14,7 @@
 package org.gagravarr.tika;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +28,7 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.XHTMLContentHandler;
+import static org.apache.tika.utils.DateUtils.formatDate;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
@@ -39,11 +41,14 @@ public class ProjectFileProcessor {
             throws IOException, TikaException, SAXException {
        // To keep track of the resources that people claim
        Set<Integer> usedResources = new HashSet<Integer>();
-       
-       // Walk the tree of tasks, printing them out
+
+       // Start our document
        XHTMLContentHandler xhtml =
                new XHTMLContentHandler(handler, metadata);
        xhtml.startDocument();
+
+       // Walk the tree of tasks, printing them out
+       xhtml.element("h2", "Tasks");
        handleTasks(project.getChildTasks(), xhtml, usedResources);
 
        // Print out any spare resources at the end
@@ -73,29 +78,45 @@ public class ProjectFileProcessor {
     {
         xhtml.startElement("ol");
         for (Task task : tasks) {
-            String name = buildName("Task", task.getName(), task.getID());
-            
             xhtml.startElement("li", "id", task.getID().toString());
-            
-            xhtml.element("b", name);
-            // TODO Dates
+            xhtml.startElement("div", "class", "task");
 
-            // Do Resources
+            // Name
+            String name = buildName("Task", task.getName(), task.getID());
+            xhtml.startElement("div", "class", "name");
+            xhtml.element("b", name);
+            xhtml.endElement("div");
+
+            // Dates
+            xhtml.startElement("div", "class", "fromTo");
+            xhtml.characters("From ");
+            xhtml.characters(buildDate(task.getStart()));
+            xhtml.characters(" to ");
+            xhtml.characters(buildDate(task.getFinish()));
+            xhtml.endElement("div");
+
+            // TODO Further information and further dates
+
+            // Resources
             for (ResourceAssignment ra : task.getResourceAssignments()) {
                 Resource resource = ra.getResource();
                 if (resource != null) {
-                    // TODO Do this better
                     usedResources.add(resource.getID());
-                    xhtml.element("i", resource.getName());
+
+                    xhtml.startElement("div", "class", "resource");
+                    xhtml.element("i", buildName("Resource", resource.getName(), resource.getID()));
+                    xhtml.endElement("div");
                 }
             }
-            
+
+            xhtml.endElement("div");
+
             // Do Child Tasks
             List<Task> childTasks = task.getChildTasks();
             if (childTasks != null && !childTasks.isEmpty()) {
                 handleTasks(childTasks, xhtml, usedResources);
             }
-            
+
             // Task complete
             xhtml.endElement("li");
         }
@@ -107,5 +128,11 @@ public class ProjectFileProcessor {
             return name;
         }
         return "(" + what + " with ID " + id + ")";
+    }
+    protected static String buildDate(Date when) {
+        if (when == null) {
+            return "(unknown)";
+        }
+        return formatDate(when);
     }
 }
