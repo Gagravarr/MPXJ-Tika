@@ -24,13 +24,15 @@ import net.sf.mpxj.ProjectFile;
 import net.sf.mpxj.Resource;
 import net.sf.mpxj.ResourceAssignment;
 import net.sf.mpxj.Task;
-import net.sf.mpxj.TimeUnit;
+import net.sf.mpxj.TaskContainer;
 
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.XHTMLContentHandler;
+
 import static org.apache.tika.utils.DateUtils.formatDate;
+
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
@@ -51,7 +53,7 @@ public class ProjectFileProcessor {
 
        // Walk the tree of tasks, printing them out
        xhtml.element("h2", "Tasks");
-       handleTasks(project.getChildTasks(), xhtml, usedResources);
+       handleChildTasks(project, xhtml, usedResources);
 
        // Find any un-used resources
        // TODO Should we display all resources here instead, with notes etc?
@@ -81,68 +83,73 @@ public class ProjectFileProcessor {
        xhtml.endDocument();
     }
     
-    protected static void handleTasks(List<Task> tasks, XHTMLContentHandler xhtml, 
-            Set<Integer> usedResources) throws SAXException
-    {
-        xhtml.startElement("ol");
-        for (Task task : tasks) {
-            xhtml.startElement("li", "id", task.getID().toString());
-            xhtml.startElement("div", "class", "task");
+    protected static void handleChildTasks(TaskContainer parentTask, XHTMLContentHandler xhtml, 
+            Set<Integer> usedResources) throws SAXException {
+        List<Task> tasks = parentTask.getChildTasks();
+        if (tasks != null && ! tasks.isEmpty()) {
+            xhtml.startElement("ol");
 
-            // Name
-            String name = buildName("Task", task.getName(), task.getID());
-            xhtml.startElement("div", "class", "name");
-            xhtml.element("b", name);
-            xhtml.endElement("div");
+            for (Task task : tasks) {
+                xhtml.startElement("li", "id", task.getID().toString());
 
-            // Notes
-            if (task.getNotes() != null) {
-                xhtml.startElement("div", "class", "notes");
-                xhtml.characters(task.getNotes());
+                // Firstly, output the task details
+                xhtml.startElement("div", "class", "task");
+                handleTask(task, xhtml, usedResources);
                 xhtml.endElement("div");
+
+                // Then recurse into children (if any)
+                handleChildTasks(task, xhtml, usedResources);
+
+                xhtml.endElement("li");
             }
 
-            // Dates
-            handleDates("Planned", task.getStart(), task.getFinish(), task.getDuration(), xhtml);
-            handleDates("Actual", task.getActualStart(), task.getActualFinish(), task.getActualDuration(), xhtml);
-            handleDates("Baseline", task.getBaselineStart(), task.getBaselineFinish(), task.getBaselineDuration(), xhtml);
-            handleDates("Earliest", task.getEarlyStart(), task.getEarlyFinish(), null, xhtml);
-            handleDates("Latest", task.getLateStart(), task.getLateFinish(), null, xhtml);
+            xhtml.endElement("ol");
+        }
+    }
 
-            // TODO Further information
+    protected static void handleTask(Task task, XHTMLContentHandler xhtml, 
+            Set<Integer> usedResources) throws SAXException {
+        // Name
+        String name = buildName("Task", task.getName(), task.getID());
+        xhtml.startElement("div", "class", "name");
+        xhtml.element("b", name);
+        xhtml.endElement("div");
 
-            // Resources
-            for (ResourceAssignment ra : task.getResourceAssignments()) {
-                Resource resource = ra.getResource();
-                if (resource != null) {
-                    usedResources.add(resource.getID());
+        // Notes
+        if (task.getNotes() != null) {
+            xhtml.startElement("div", "class", "notes");
+            xhtml.characters(task.getNotes());
+            xhtml.endElement("div");
+        }
 
-                    xhtml.startElement("div", "class", "resource");
-                    xhtml.element("i", buildName("Resource", resource.getName(), resource.getID()));
+        // Dates
+        handleDates("Planned", task.getStart(), task.getFinish(), task.getDuration(), xhtml);
+        handleDates("Actual", task.getActualStart(), task.getActualFinish(), task.getActualDuration(), xhtml);
+        handleDates("Baseline", task.getBaselineStart(), task.getBaselineFinish(), task.getBaselineDuration(), xhtml);
+        handleDates("Earliest", task.getEarlyStart(), task.getEarlyFinish(), null, xhtml);
+        handleDates("Latest", task.getLateStart(), task.getLateFinish(), null, xhtml);
 
-                    // TODO What about Notes on the resource itself?
-                    if (ra.getNotes() != null) {
-                        xhtml.startElement("div", "class", "notes");
-                        xhtml.characters(ra.getNotes());
-                        xhtml.endElement("div");
-                    }
+        // TODO Further information
 
+        // Resources
+        for (ResourceAssignment ra : task.getResourceAssignments()) {
+            Resource resource = ra.getResource();
+            if (resource != null) {
+                usedResources.add(resource.getID());
+
+                xhtml.startElement("div", "class", "resource");
+                xhtml.element("i", buildName("Resource", resource.getName(), resource.getID()));
+
+                // TODO What about Notes on the resource itself?
+                if (ra.getNotes() != null) {
+                    xhtml.startElement("div", "class", "notes");
+                    xhtml.characters(ra.getNotes());
                     xhtml.endElement("div");
                 }
+
+                xhtml.endElement("div");
             }
-
-            xhtml.endElement("div");
-
-            // Do Child Tasks
-            List<Task> childTasks = task.getChildTasks();
-            if (childTasks != null && !childTasks.isEmpty()) {
-                handleTasks(childTasks, xhtml, usedResources);
-            }
-
-            // Task complete
-            xhtml.endElement("li");
         }
-        xhtml.endElement("ol");
     }
     
     /**
