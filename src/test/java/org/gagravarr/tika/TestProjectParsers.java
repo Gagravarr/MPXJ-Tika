@@ -98,11 +98,11 @@ public class TestProjectParsers {
                 "The quick brown fox jumps over the lazy dog", 
                 metadata.get(DublinCore.TITLE)
         );
-        assertTrue(handler.toString().contains("Fox does his jump"));
-        assertTrue(handler.toString().contains("Obtain Dog"));
-        assertTrue(handler.toString().contains("from 2011-11-25T08:00:00"));
-        assertTrue(handler.toString().contains("to 2011-11-24T17:00:00"));
-        assertTrue(handler.toString().contains("taking 1 Day"));
+        assertContains("Fox does his jump", handler.toString());
+        assertContains("Obtain Dog", handler.toString());
+        assertContains("from 2011-11-25T08:00:00", handler.toString());
+        assertContains("to 2011-11-24T17:00:00", handler.toString());
+        assertContains("taking 1 Day", handler.toString());
         
         
         // Ask for a MPX to be processed
