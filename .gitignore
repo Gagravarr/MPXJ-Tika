@@ -12,3 +12,6 @@ build
 *.jar
 *.war
 *.ear
+
+# Editor / Tmp File #
+.*.swp
