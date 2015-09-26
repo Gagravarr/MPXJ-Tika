@@ -24,19 +24,27 @@
   <version>0.1-SNAPSHOT</version>
 
   <properties>
-    <tika.version>1.5</tika.version>
-    <mpxj.version>4.6.0-SNAPSHOT</mpxj.version>
+    <tika.version>1.6</tika.version>
+    <mpxj.version>5.2-SNAPSHOT</mpxj.version>
 
-    <maven.compile.source>1.5</maven.compile.source>
-    <maven.compile.target>1.5</maven.compile.target>
+    <maven.compile.source>1.6</maven.compile.source>
+    <maven.compile.target>1.6</maven.compile.target>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>net.sourceforge</groupId>
+      <groupId>net.sf.mpxj</groupId>
       <artifactId>mpxj</artifactId>
       <version>${mpxj.version}</version>
     </dependency>
+    <!-- This is a workaround for the RTFParserKit -->
+    <!--  dependency being missing from the MPXJ Pom -->
+    <dependency>
+      <groupId>com.rtfparserkit</groupId>
+      <artifactId>rtfparserkit</artifactId>
+      <version>1.2.0</version>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>

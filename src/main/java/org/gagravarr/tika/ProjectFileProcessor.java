@@ -13,26 +13,25 @@
  */
 package org.gagravarr.tika;
 
+import static org.apache.tika.utils.DateUtils.formatDate;
+
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.sf.mpxj.ChildTaskContainer;
 import net.sf.mpxj.Duration;
 import net.sf.mpxj.ProjectFile;
 import net.sf.mpxj.Resource;
 import net.sf.mpxj.ResourceAssignment;
 import net.sf.mpxj.Task;
-import net.sf.mpxj.TaskContainer;
 
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.XHTMLContentHandler;
-
-import static org.apache.tika.utils.DateUtils.formatDate;
-
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
@@ -83,7 +82,7 @@ public class ProjectFileProcessor {
        xhtml.endDocument();
     }
     
-    protected static void handleChildTasks(TaskContainer parentTask, XHTMLContentHandler xhtml, 
+    protected static void handleChildTasks(ChildTaskContainer parentTask, XHTMLContentHandler xhtml,
             Set<Integer> usedResources) throws SAXException {
         List<Task> tasks = parentTask.getChildTasks();
         if (tasks != null && ! tasks.isEmpty()) {
